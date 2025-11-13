@@ -5,21 +5,60 @@ import pandas as pd
 import joblib
 
 from src.common.io import read_yaml
-from src.common.log import info, ok
+from src.common.log import info, ok, warn
 from src.perception.yolo import Detector
-from src.perception.metrics import map_at_iou
+from src.perception.metrics import map_at_iou  # (optional; kept for future GT AP)
 from src.scheduler.safety import in_no_skip_zone
 from src.scheduler.policy import SkipPolicy
 from src.energy.nvml import PowerLogger
 from src.energy.simulator import SimEnergy
+from src.common.runs import run_root, ensure_dir, write_manifest
 
-def load_policy(policy_json: Path) -> SkipPolicy:
+
+def load_policy(policy_json: Path) -> tuple[SkipPolicy, dict, dict]:
     with open(policy_json, "r", encoding="utf-8") as f:
         d = json.load(f)
     pol = SkipPolicy(d["k_values"], d["cost_thresholds"], d["max_skip"])
     saf = d.get("safety", {})
     change = d.get("change_reset", {})
     return pol, saf, change
+
+
+def _resolve_model_paths(run_tag: str | None) -> tuple[Path, Path | None]:
+    """
+    Prefer results/models/<tag> if available; otherwise fall back to results/models root.
+    Returns: (model_dir, scaler_path or None)
+    """
+    tagged = Path("results/models") / (run_tag or "")
+    root = Path("results/models")
+    if run_tag and (tagged / "scheduler_model.pkl").exists():
+        model_dir = tagged
+    elif (root / "scheduler_model.pkl").exists():
+        model_dir = root
+        if run_tag:
+            warn(f"Tagged model not found under {tagged}; falling back to {root}.")
+    else:
+        raise SystemExit("No trained model found. Run: 03_train_scheduler.py first.")
+    scaler_path = model_dir / "feature_scaler.pkl"
+    if not scaler_path.exists():
+        scaler_path = None
+    return model_dir, scaler_path
+
+
+def _resolve_policy_path(run_tag: str | None) -> Path:
+    """
+    Prefer results/policy/<tag>/calibrated_policy.json; fallback to results/policy/calibrated_policy.json.
+    """
+    tagged = Path("results/policy") / (run_tag or "") / "calibrated_policy.json"
+    root = Path("results/policy") / "calibrated_policy.json"
+    if run_tag and tagged.exists():
+        return tagged
+    if root.exists():
+        if run_tag and not tagged.exists():
+            warn(f"Tagged policy not found under {tagged.parent}; using {root}.")
+        return root
+    raise SystemExit("No calibrated policy found. Run: 04_calibrate_scheduler.py first.")
+
 
 def main(args):
     data_cfg = read_yaml(args.data_config)
@@ -29,24 +68,24 @@ def main(args):
     eval_cfg  = read_yaml(args.eval_config)
     energy_cfg= read_yaml(args.energy_config)
 
-    out_dir = Path(eval_cfg["eval"]["output_dir"]) / "scheduler"
-    out_dir.mkdir(parents=True, exist_ok=True)
+    # Per-run output directory
+    run_dir = run_root(args.run_tag)
+    out_dir = ensure_dir(run_dir / "scheduler")
+    write_manifest(out_dir, {"phase": "scheduler"})
 
     # Load features (test split)
     feats = pd.read_parquet("results/features.parquet")
     feats = feats[feats["split"] == "test"].copy()
     feat_cols = model_cfg["features"]["cols"]
 
-    # Load model & scaler
-    model_dir = Path("results/models")
+    # Load model & scaler (prefer tagged)
+    model_dir, scaler_path = _resolve_model_paths(args.run_tag)
     model = joblib.load(model_dir / "scheduler_model.pkl")
-    try:
-        scaler = joblib.load(model_dir / "feature_scaler.pkl")
-    except Exception:
-        scaler = None
+    scaler = joblib.load(scaler_path) if scaler_path and scaler_path.exists() else None
 
-    # Load calibrated policy
-    pol, safety_floors, change_reset = load_policy(Path("results/policy/calibrated_policy.json"))
+    # Load calibrated policy (prefer tagged)
+    policy_path = _resolve_policy_path(args.run_tag)
+    pol, safety_floors, change_reset = load_policy(policy_path)
 
     det = Detector(weights=eval_cfg["baseline"]["detector_weights"],
                    conf=eval_cfg["baseline"]["conf"],
@@ -76,8 +115,10 @@ def main(args):
             x = scaler.transform(x)
         y_cost = float(model.predict(x)[0])
 
-        # Safety
-        safety_guard = lambda f=row: in_no_skip_zone(f, safety_floors["density_hi"], safety_floors["motion_hi"], safety_floors["brightness_lo"])
+        # Safety guard
+        safety_guard = lambda f=row: in_no_skip_zone(
+            f, safety_floors["density_hi"], safety_floors["motion_hi"], safety_floors["brightness_lo"]
+        )
         k = pol.decide(y_cost, row.to_dict(), safety_guard=safety_guard)
 
         # Reset on large motion change if configured
@@ -95,7 +136,10 @@ def main(args):
             k_counter = max(k - 1, 0)
         else:
             # carry forward last detections and assume tiny latency
-            r = last_det if last_det is not None else {"boxes": np.zeros((0,4)), "scores": np.zeros((0,)), "cls": np.zeros((0,)), "latency_ms": 1.0}
+            r = last_det if last_det is not None else {"boxes": np.zeros((0, 4)),
+                                                       "scores": np.zeros((0,)),
+                                                       "cls": np.zeros((0,)),
+                                                       "latency_ms": 1.0}
             latency_ms = 1.0
             k_counter -= 1
 
@@ -108,8 +152,7 @@ def main(args):
             sim.observe(fps=fps, util=0.55 if run_infer else 0.15)
             w = sim.mean()
 
-        # (Optional) mAP proxy: if you have GT boxes, compute per-frame AP
-        # Here we lack GT, so store placeholders; your grading may rely on latency + power
+        # Collect row (add AP later if GT available)
         per_rows.append({
             "frame_id": row["frame_id"],
             "img_path": row["img_path"],
@@ -117,7 +160,6 @@ def main(args):
             "ran_infer": int(run_infer),
             "latency_ms": float(latency_ms),
             "power_w": float(w),
-            # "ap_05": ap  # add when GT available
         })
 
     if logger:
@@ -132,11 +174,14 @@ def main(args):
         "power_w_mean": float(per["power_w"].mean()),
         "n_frames": int(len(per)),
         "skip_rate": float(1.0 - per["ran_infer"].mean()),
+        "model_dir": str(model_dir),
+        "policy_path": str(policy_path),
     }
     with open(out_dir / "metrics.json", "w", encoding="utf-8") as f:
         json.dump(agg, f, indent=2)
 
     ok(f"Scheduler run complete → {out_dir}")
+
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
@@ -146,4 +191,5 @@ if __name__ == "__main__":
     ap.add_argument("--sched-config", type=str, required=True)
     ap.add_argument("--eval-config", type=str, required=True)
     ap.add_argument("--energy-config", type=str, required=True)
+    ap.add_argument("--run-tag", type=str, default=None, help="results/runs/<run-tag> and matching models/policy")
     main(ap.parse_args())

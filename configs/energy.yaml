@@ -1,5 +1,5 @@
 energy:
-  mode: "sim"        # "nvml" | "smi" | "sim"
+  mode: "nvml"        # "nvml" | "smi" | "sim"
   nvml_gpu_index: 0
   smi_poll_ms: 100
   sim_params:

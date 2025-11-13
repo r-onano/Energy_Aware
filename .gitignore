@@ -1,0 +1,28 @@
+# python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv
+.ipynb_checkpoints/
+.pytest_cache/
+
+# data & artifacts
+data/
+results/
+report/figures/
+*.csv
+*.parquet
+*.pt
+*.onnx
+*.ckpt
+*.log
+*.png
+*.jpg
+*.jpeg
+*.mp4
+
+# os junk
+.DS_Store
+Thumbs.db

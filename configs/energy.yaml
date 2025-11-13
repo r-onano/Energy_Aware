@@ -1,0 +1,9 @@
+energy:
+  mode: "sim"        # "nvml" | "smi" | "sim"
+  nvml_gpu_index: 0
+  smi_poll_ms: 100
+  sim_params:
+    alpha: 0.8
+    beta: 0.2
+    gamma: 5.0
+  calibration_path: "results/energy_calibration.json"

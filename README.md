@@ -102,23 +102,6 @@ python src/evaluation/evaluate.py --num_frames 100
 
 ---
 
-## Expected Results
-
-After running the pipeline, you should see:
-
-```
-Energy-Aware System Performance:
-  • Energy Savings: 26.4%
-  • Average Energy: 5.00 J/frame
-  • F1 Score: 0.653
-  • Critical Detection: 85.3%
-
-Model Usage Distribution:
-  • Light: 88 frames (88.0%)
-  • Medium: 4 frames (4.0%)
-  • Heavy: 8 frames (8.0%)
-```
-
 Generated visualizations will be saved in `data/results/`.
 
 ---

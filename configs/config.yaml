@@ -1,0 +1,164 @@
+# Energy-Aware Perception Scheduling Configuration
+
+# Dataset Configuration
+dataset:
+  kitti:
+    path: "data/raw/kitti"
+    split:
+      train: 0.70
+      val: 0.15
+      test: 0.15
+    image_size: [375, 1242]  # height, width
+  
+  bdd100k:
+    path: "data/raw/bdd100k"
+    split:
+      train: 0.70
+      val: 0.15
+      test: 0.15
+    image_size: [720, 1280]
+
+# Feature Extraction
+features:
+  # Object density features
+  object_count: true
+  object_density: true
+  pedestrian_count: true
+  vehicle_count: true
+  cyclist_count: true
+  
+  # Lighting features
+  brightness_mean: true
+  brightness_std: true
+  contrast: true
+  
+  # Motion features
+  motion_score: true
+  edge_density: true
+  
+  # Spatial features
+  spatial_distribution: true
+
+# Model Configuration
+models:
+  # Complexity prediction models
+  complexity:
+    linear_regression:
+      enabled: true
+      hyperparameters: {}
+    
+    random_forest:
+      enabled: true
+      hyperparameters:
+        n_estimators: 100
+        max_depth: 20
+        min_samples_split: 5
+        min_samples_leaf: 2
+        random_state: 42
+    
+    xgboost:
+      enabled: true
+      hyperparameters:
+        n_estimators: 200
+        max_depth: 10
+        learning_rate: 0.1
+        subsample: 0.8
+        colsample_bytree: 0.8
+        random_state: 42
+  
+  # Perception models (YOLO variants)
+  perception:
+    skip:
+      energy: 0.1  # Joules
+      accuracy: 0.0  # Baseline (frame reuse)
+      latency: 0.1  # ms
+    
+    light:
+      model: "yolov5s"
+      energy: 2.5  # Joules
+      accuracy: 0.85  # Relative to heavy
+      latency: 5.0  # ms
+      confidence: 0.25
+      iou: 0.45
+    
+    medium:
+      model: "yolov5m"
+      energy: 4.2  # Joules
+      accuracy: 0.92  # Relative to heavy
+      latency: 8.0  # ms
+      confidence: 0.25
+      iou: 0.45
+    
+    heavy:
+      model: "yolov5l"
+      energy: 6.8  # Joules
+      accuracy: 1.0  # Baseline (maximum)
+      latency: 12.0  # ms
+      confidence: 0.25
+      iou: 0.45
+
+# Scheduling Configuration
+scheduling:
+  # Complexity thresholds for model selection
+  thresholds:
+    skip: 0.08      # Very low complexity
+    light: 0.08     # Low complexity
+    medium: 0.32    # Medium complexity
+    heavy: 1.0     # High complexity (always use for safety)
+  
+  # Safety overrides
+  safety:
+    pedestrian_present: "heavy"  # Always use heavy if pedestrians detected
+    low_visibility: "heavy"      # Use heavy in poor lighting
+    high_motion: "medium"        # Use at least medium for high motion
+  
+  # Performance targets
+  targets:
+    energy_reduction: 0.25  # 25% target reduction
+    accuracy_loss: 0.05     # Max 5% accuracy loss
+    critical_detection: 0.95  # Min 95% critical object detection
+
+# Training Configuration
+training:
+  batch_size: 32
+  epochs: 100
+  learning_rate: 0.001
+  early_stopping:
+    patience: 10
+    min_delta: 0.001
+  
+  validation_split: 0.15
+  random_seed: 42
+
+# Evaluation Configuration
+evaluation:
+  metrics:
+    - "energy_consumption"
+    - "detection_accuracy"
+    - "precision"
+    - "recall"
+    - "f1_score"
+    - "latency"
+    - "critical_object_detection_rate"
+  
+  visualizations:
+    - "energy_vs_accuracy_plot"
+    - "complexity_distribution"
+    - "model_selection_frequency"
+    - "confusion_matrix"
+    - "detection_examples"
+
+# Output Configuration
+output:
+  processed_data: "data/processed"
+  models: "models"
+  results: "data/results"
+  logs: "logs"
+  checkpoints: "checkpoints"
+
+# System Configuration
+system:
+  device: "cuda"  # cuda, cpu, mps
+  num_workers: 4
+  pin_memory: true
+  verbose: true

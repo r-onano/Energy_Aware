@@ -1,0 +1,101 @@
+# Energy-Aware Perception Scheduling Configuration
+
+# Dataset paths
+dataset:
+  kitti:
+    path: "data/raw/kitti"
+    type: "kitti"
+  bdd100k:
+    path: "data/raw/bdd100k"
+    type: "bdd100k"
+    # For quick testing, limit images
+    max_train_images: null  # Set to number like 1000 for testing
+    max_val_images: 500     # Limit validation set
+
+# Feature extraction weights
+features:
+  weights:
+    object_count: 0.12
+    object_density: 0.10
+    pedestrian_count: 0.15    # Higher weight for safety
+    vehicle_count: 0.08
+    cyclist_count: 0.12       # Higher weight for safety
+    brightness_mean: 0.08
+    brightness_std: 0.06
+    contrast: 0.07
+    motion_score: 0.10
+    edge_density: 0.05
+    spatial_entropy: 0.04
+    color_variance: 0.03
+
+# Complexity scoring and model selection
+scheduling:
+  thresholds:
+    skip: 0.1      # C < 0.1: Skip/reuse previous detection
+    light: 0.3     # 0.1 <= C < 0.3: YOLOv5s
+    medium: 0.6    # 0.3 <= C < 0.6: YOLOv5m
+    heavy: 0.6     # C >= 0.6: YOLOv5l
+  
+  # Safety override rules
+  safety:
+    min_brightness: 0.3           # Low visibility threshold
+    high_motion_threshold: 0.5    # High motion threshold
+    critical_classes: ['pedestrian', 'cyclist', 'rider']
+
+# Energy costs (Joules per frame)
+energy:
+  skip: 0.1
+  light: 2.5    # YOLOv5s
+  medium: 4.2   # YOLOv5m
+  heavy: 6.8    # YOLOv5l
+
+# YOLO models
+models:
+  yolo:
+    light: "yolov5s"
+    medium: "yolov5m"
+    heavy: "yolov5l"
+    confidence: 0.25
+    iou_threshold: 0.45
+
+# Machine learning models
+ml_models:
+  linear:
+    name: "Linear Regression"
+  random_forest:
+    name: "Random Forest"
+    n_estimators: 100
+    max_depth: 20
+    random_state: 42
+  xgboost:
+    name: "XGBoost"
+    n_estimators: 200
+    learning_rate: 0.1
+    max_depth: 10
+    random_state: 42
+
+# Output paths
+output:
+  processed_data: "data/processed"
+  models: "models"
+  results: "data/results"
+  logs: "logs"
+  visualizations: "data/visualizations"
+
+# Training configuration
+training:
+  test_size: 0.15
+  val_size: 0.15
+  random_state: 42
+  normalize: true
+
+# Evaluation configuration
+evaluation:
+  metrics:
+    - energy_savings
+    - f1_score
+    - precision
+    - recall
+    - critical_detection_rate
+  iou_threshold: 0.5
+  critical_iou_threshold: 0.3  # Lower threshold for critical objects

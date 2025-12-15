@@ -1,28 +1,200 @@
-# python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.env
-.venv
-.ipynb_checkpoints/
-.pytest_cache/
+# ============================================================================
+# PROJECT-SPECIFIC: DATASETS & ARTIFACTS
+# ============================================================================
 
-# data & artifacts
-data/
+# Datasets (too large – download separately)
+data/raw/
+!data/raw/.gitkeep
+data/processed/
+data/results/
+
+# Generic large data files
+*.npz
+*.zip
+*.tar.gz
+*.h5
+*.hdf5
+
+# KITTI dataset
+kitti/
+KITTI/
+
+# BDD100K dataset
+bdd100k/
+BDD100K/
+
+# Evaluation / output artifacts
+visualizations/
 results/
-report/figures/
-*.csv
-*.parquet
-*.pt
-*.onnx
-*.ckpt
+outputs/
+
+# Logs & run outputs
+logs/
 *.log
+
+# TensorBoard
+runs/
+
+# Weights & Biases
+wandb/
+
+# Models & checkpoints
+models/*.pkl
+models/*.pth
+models/*.pt
+models/*.h5
+models/*.onnx
+checkpoints/
+*.pkl
+*.pth
+
+# Images & figures
 *.png
 *.jpg
 *.jpeg
-*.mp4
+*.pdf
 
-# os junk
+
+# ============================================================================
+# PROJECT-SPECIFIC SCRIPTS & NOTEBOOKS
+# ============================================================================
+
+# Root-level helper / diagnostic scripts (not tracked)
+check_processed_data.py
+diagnose_bdd100k.py
+diagnostic_script.py
+Generate_visualizations.py
+Generate_visualizationsNew.py
+test_bdd100k_loading.py
+run_bdd100k_pipeline.sh
+run_pipeline.py
+install_fix.sh
+
+# Notebooks directory
+notebooks/
+
+
+# ============================================================================
+# PYTHON
+# ============================================================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+virtualenv/
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.pytest_cache/
+
+
+# ============================================================================
+# JUPYTER NOTEBOOK
+# ============================================================================
+
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+*.ipynb
+
+
+# ============================================================================
+# IDE / EDITORS
+# ============================================================================
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# PyCharm / JetBrains
+.idea/
+*.iml
+
+# Vim / other editors
+*.swp
+*.swo
+*~
+
+
+# ============================================================================
+# OPERATING SYSTEM
+# ============================================================================
+
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
 Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+
+# ============================================================================
+# TEMPORARY FILES
+# ============================================================================
+
+*.tmp
+*.temp
+tmp/
+temp/
+
+
+# ============================================================================
+# DOCUMENTATION BUILD
+# ============================================================================
+
+docs/_build/
+site/
+
+
+# ============================================================================
+# EXCEPTIONS (FILES TO KEEP)
+# ============================================================================
+
+# Keep example config
+!config_multi_dataset.yaml
+
+# Keep sample visualizations in docs (if needed)
+# !docs/images/*.png

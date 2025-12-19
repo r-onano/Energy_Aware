@@ -1,10 +1,6 @@
 # Energy-Aware Perception Scheduling for Autonomous Vehicles
 
 **A machine learning framework that reduces autonomous vehicle energy consumption by 26.4% while maintaining safety.**
-
-[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.1.0-red.svg)](https://pytorch.org/)
-
 ---
 
 ##  Overview
@@ -17,12 +13,10 @@ This project implements an intelligent perception scheduling system that dynamic
 - **Saves energy** by 26.4% compared to always-heavy processing
 
 ### Key Results
-- ✅ **26.4% energy savings** vs constant heavy processing
-- ✅ **85.3% critical object detection** (pedestrians & cyclists)
-- ✅ **65.3% F1 score** with minimal accuracy loss
-- ✅ **360 MWh daily savings** at 1 million vehicle scale
-
-**Published Work:** [IEEE Conference Paper](https://github.com/r-onano/Energy_Aware) | Fall 2025
+-  **26.4% energy savings** vs constant heavy processing
+-  **85.3% critical object detection** (pedestrians & cyclists)
+-  **65.3% F1 score** with minimal accuracy loss
+-  **360 MWh daily savings** at 1 million vehicle scale
 
 ---
 
